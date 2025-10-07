@@ -1,0 +1,186 @@
+Q1)
+#include<stdio.h>
+#define MAX 20
+int frames[MAX],ref[MAX],mem[MAX][MAX],faults, 
+ sp,m,n,count[MAX]; 
+void accept() 
+{ 
+int i; 
+printf("Enter no.of frames:"); 
+scanf("%d", &n);
+printf("Enter no.of references:"); 
+scanf("%d", &m); 
+printf("Enter reference string:\n"); 
+for(i=0;i<m;i++) 
+ { 
+ printf("[%d]=",i); 
+ scanf("%d",&ref[i]); 
+ } 
+} 
+void disp() 
+{ 
+int i,j; 
+for(i=0;i<m;i++) 
+ printf("%3d",ref[i]); 
+printf("\n\n"); 
+for(i=0;i<n;i++) 
+ { 
+ for(j=0;j<m;j++) 
+ { 
+ if(mem[i][j]) 
+ printf("%3d",mem[i][j]); 
+ else
+ printf(" "); 
+ } 
+ printf("\n"); 
+ } 
+printf("Total Page Faults: %d\n",faults); 
+} 
+int search(int pno) 
+{ 
+int i; 
+for(i=0;i<n;i++) 
+ { 
+ if(frames[i]==pno) 
+ return i; 
+ } 
+return -1; 
+}
+int get_mfu(int sp) 
+{ 
+int i,max_i,max=-9999; 
+ i=sp; 
+do
+ { 
+ if(count[i]>max) 
+ { 
+ max = count[i]; 
+ max_i = i; 
+ } 
+ i=(i+1)%n; 
+ }while(i!=sp); 
+return max_i; 
+} 
+void mfu() 
+{ 
+int i,j,k; 
+for(i=0;i<m && sp<n;i++) 
+ { 
+ k=search(ref[i]); 
+ if(k==-1) 
+ { 
+ frames[sp]=ref[i]; 
+ count[sp]++; 
+ faults++; 
+ sp++; 
+ for(j=0;j<n;j++) 
+ mem[j][i]=frames[j]; 
+ } 
+ else
+ count[k]++; 
+ 
+ } 
+ sp=0; 
+for(;i<m;i++) 
+ { 
+ k = search(ref[i]); 
+ if(k==-1) 
+ { 
+ sp = get_mfu(sp);
+ frames[sp] = ref[i]; 
+ count[sp]=1; 
+ faults++; 
+ sp = (sp+1)%n; 
+ for(j=0;j<n;j++) 
+ mem[j][i] = frames[j]; 
+ } 
+ else
+ count[k]++; 
+ } 
+} 
+ 
+int main() 
+{ 
+accept(); 
+mfu(); 
+disp(); 
+return 0; 
+}
+
+Q2)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX 100
+
+void countFile(char type, char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        printf("File not found!\n");
+        return;
+    }
+    int ch, chars = 0, words = 0, lines = 0;
+    char prev = ' ';
+    while ((ch = fgetc(fp)) != EOF) {
+        chars++;
+        if (ch == '\n')
+            lines++;
+        if ((ch == ' ' || ch == '\n' || ch == '\t') && (prev != ' ' && prev != '\n' && prev != '\t'))
+            words++;
+        prev = ch;
+    }
+    fclose(fp);
+    if (type == 'c')
+        printf("Number of characters: %d\n", chars);
+    else if (type == 'w')
+        printf("Number of words: %d\n", words);
+    else if (type == 'l')
+        printf("Number of lines: %d\n", lines);
+    else
+        printf("Invalid option for count command!\n");
+}
+
+int main() {
+    char input[MAX], *args[10];
+    char *token;
+    pid_t pid;
+    while (1) {
+        printf("myshell$ ");
+        fgets(input, MAX, stdin);
+        input[strlen(input) - 1] = '\0';
+        if (strcmp(input, "exit") == 0)
+            break;
+        int i = 0;
+        token = strtok(input, " ");
+        while (token != NULL) {
+            args[i++] = token;
+            token = strtok(NULL, " ");
+        }
+        args[i] = NULL;
+        if (args[0] == NULL)
+            continue;
+        if (strcmp(args[0], "count") == 0) {
+            if (args[1] == NULL || args[2] == NULL) {
+                printf("Usage: count [c|w|l] filename\n");
+                continue;
+            }
+            countFile(args[1][0], args[2]);
+            continue;
+        }
+        pid = fork();
+        if (pid == 0) {
+            if (execvp(args[0], args) == -1)
+                perror("Command execution failed");
+            exit(0);
+        } else if (pid > 0)
+            wait(NULL);
+        else
+            perror("Fork failed");
+    }
+    return 0;
+}
