@@ -85,3 +85,84 @@ faults++;
  
  return 0; 
 }
+
+Q2)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX 100
+
+void searchPattern(char *mode, char *filename, char *pattern) {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        printf("File not found!\n");
+        return;
+    }
+    char line[256];
+    int count = 0, lineNum = 0, found = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        lineNum++;
+        char *pos = strstr(line, pattern);
+        if (pos != NULL) {
+            if (strcmp(mode, "f") == 0) {
+                printf("First occurrence at line %d: %s", lineNum, line);
+                found = 1;
+                break;
+            }
+            while (pos != NULL) {
+                count++;
+                pos = strstr(pos + 1, pattern);
+            }
+        }
+    }
+    fclose(fp);
+    if (strcmp(mode, "c") == 0)
+        printf("Total occurrences: %d\n", count);
+    if (strcmp(mode, "f") == 0 && !found)
+        printf("Pattern not found.\n");
+}
+
+int main() {
+    char input[MAX], *args[10];
+    char *token;
+    pid_t pid;
+    while (1) {
+        printf("myshell$ ");
+        fgets(input, MAX, stdin);
+        input[strlen(input) - 1] = '\0';
+        if (strcmp(input, "exit") == 0)
+            break;
+        int i = 0;
+        token = strtok(input, " ");
+        while (token != NULL) {
+            args[i++] = token;
+            token = strtok(NULL, " ");
+        }
+        args[i] = NULL;
+        if (args[0] == NULL)
+            continue;
+        if (strcmp(args[0], "search") == 0) {
+            if (i == 4 && (strcmp(args[1], "f") == 0 || strcmp(args[1], "c") == 0))
+                searchPattern(args[1], args[2], args[3]);
+            else
+                printf("Usage:\n search f filename pattern\n search c filename pattern\n");
+            continue;
+        }
+        pid = fork();
+        if (pid == 0) {
+            if (execvp(args[0], args) == -1)
+                perror("Command execution failed");
+            exit(0);
+        } else if (pid > 0)
+            wait(NULL);
+        else
+            perror("Fork failed");
+    }
+    return 0;
+}
+
