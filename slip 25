@@ -1,0 +1,192 @@
+Q1)
+// parent
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
+
+void bubbleSort(int arr[], int n) {
+    int i, j, temp;
+    for(i = 0; i < n-1; i++) {
+        for(j = 0; j < n-i-1; j++) {
+            if(arr[j] > arr[j+1]) {
+                temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    printf("Enter number of integers: ");
+    scanf("%d", &n);
+
+    int arr[n];
+    for(int i = 0; i < n; i++)
+        scanf("%d", &arr[i]);
+
+    bubbleSort(arr, n);
+
+    char *args[n + 3]; // program name + array + NULL + item to search
+    args[0] = "./child"; // child program name
+
+    for(int i = 0; i < n; i++) {
+        char *num = malloc(12); // enough for int
+        sprintf(num, "%d", arr[i]);
+        args[i+1] = num;
+    }
+
+    args[n+1] = NULL;
+
+    pid_t pid = fork();
+
+    if(pid < 0) {
+        perror("fork failed");
+        exit(1);
+    }
+    else if(pid == 0) {
+        execve("./child", args, NULL);
+        perror("execve failed");
+        exit(1);
+    }
+    else {
+        wait(NULL);
+    }
+
+    return 0;
+}
+
+// child
+#include <stdio.h>
+#include <stdlib.h>
+
+int binarySearch(int arr[], int n, int key) {
+    int low = 0, high = n-1, mid;
+    while(low <= high) {
+        mid = (low + high)/2;
+        if(arr[mid] == key)
+            return mid;
+        else if(arr[mid] < key)
+            low = mid + 1;
+        else
+            high = mid - 1;
+    }
+    return -1;
+}
+
+int main(int argc, char *argv[]) {
+    if(argc < 2) {
+        printf("No array passed\n");
+        return 1;
+    }
+
+    int n = argc - 1;
+    int arr[n];
+
+    for(int i = 0; i < n; i++)
+        arr[i] = atoi(argv[i+1]);
+
+    int key;
+    printf("Enter element to search: ");
+    scanf("%d", &key);
+
+    int index = binarySearch(arr, n, key);
+
+    if(index != -1)
+        printf("Element %d found at position %d\n", key, index+1);
+    else
+        printf("Element %d not found\n", key);
+
+    return 0;
+}
+
+
+Q2)
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
+void make_toks(char *s, char *tok[]) {
+    int i = 0;
+    char *p;
+    p = strtok(s, " ");
+    while(p != NULL) {
+        tok[i++] = p;
+        p = strtok(NULL, " ");
+    }
+    tok[i] = NULL;
+}
+
+void search(char *fn, char *pattern) {
+    int fh;
+    char c, line[1024];
+    fh = open(fn, O_RDONLY);
+    if(fh == -1) {
+        printf("File %s not found.\n", fn);
+        return;
+    }
+    int i = 0, found = 0;
+    while(read(fh, &c, 1) > 0) {
+        if(c != '\n') {
+            line[i++] = c;
+        } else {
+            line[i] = '\0';
+            if(strstr(line, pattern)) {
+                printf("Found: %s\n", line);
+                found = 1;
+                break;
+            }
+            i = 0;
+        }
+    }
+    if(!found && i > 0) { // check last line
+        line[i] = '\0';
+        if(strstr(line, pattern)) {
+            printf("Found: %s\n", line);
+            found = 1;
+        }
+    }
+    if(!found)
+        printf("Pattern not found.\n");
+    close(fh);
+}
+
+int main() {
+    char buff[1024], *args[20];
+    int pid;
+    while(1) {
+        printf("myshell$ ");
+        fflush(stdin);
+        fgets(buff, sizeof(buff), stdin);
+        buff[strlen(buff)-1] = '\0';
+        make_toks(buff, args);
+
+        if(args[0] == NULL) continue;
+        if(strcmp(args[0], "exit") == 0) break;
+
+        if(strcmp(args[0], "search") == 0 && args[1] && strcmp(args[1], "f") == 0 && args[2] && args[3]) {
+            search(args[2], args[3]);
+        } else {
+            pid = fork();
+            if(pid > 0) {
+                wait(NULL);
+            } else {
+                if(execvp(args[0], args) == -1)
+                    printf("Bad command.\n");
+                exit(1);
+            }
+        }
+    }
+    return 0;
+}
+
+
+
