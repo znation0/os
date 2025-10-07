@@ -1,0 +1,190 @@
+Q1)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+void make_toks(char *s, char *tok[]) 
+{ 
+ int i=0; 
+ char *p; 
+ p = strtok(s," "); 
+ while(p!=NULL) 
+ { tok[i++]=p; 
+ p=strtok(NULL," "); 
+ } 
+ tok[i]=NULL; 
+} 
+void list(char *dn, char op) 
+{ 
+ DIR *dp; 
+ struct dirent *entry; 
+ int dc=0,fc=0; 
+ dp = opendir(dn); 
+ if(dp==NULL) 
+ { 
+ printf("Dir %s not found.\n",dn); 
+ return; 
+ }
+ switch(op) 
+ { 
+ case 'f': 
+ while(entry=readdir(dp)) 
+ { 
+ if(entry->d_type==DT_REG) 
+ printf("%s\n",entry->d_name); 
+ } break; 
+ case 'n': 
+ while(entry=readdir(dp)) 
+ { 
+ if(entry->d_type==DT_DIR) dc++; 
+ if(entry->d_type==DT_REG) fc++; 
+ } 
+ printf("%d Dir(s)\t%d File(s)\n",dc,fc); 
+ break; 
+ case 'i': 
+ while(entry=readdir(dp)) 
+ { 
+ if(entry->d_type==DT_REG) 
+ printf("%s\t%lu\n",entry->d_name,entry->d_fileno); 
+ } 
+ } 
+ closedir(dp); 
+} 
+int main() { 
+ char buff[80],*args[10]; 
+ int pid; 
+ while(1) 
+ { 
+ printf("myshell$"); 
+ fflush(stdin); 
+ fgets(buff,80,stdin); 
+ buff[strlen(buff)-1]='\0'; 
+ make_toks(buff,args); 
+ if(strcmp(args[0],"list")==0) 
+ list(args[2],args[1][0]); 
+ else 
+ { 
+ pid = fork(); 
+ if(pid>0) 
+ wait(); 
+ else 
+ {
+ if(execvp(args[0],args)==-1) 
+ printf("Bad command.\n"); 
+ } 
+ } 
+ } 
+ return 0; 
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct process
+{
+    char pname[20];
+    int at, bt, ct, bt1;
+} PROCESS;
+
+typedef struct gantt
+{
+    int start;
+    char pname[20];
+    int end;
+} GANTT;
+
+int main()
+{
+    int n, completed = 0, time = 0, chart_index = 0;
+    scanf("%d", &n);
+
+    PROCESS p[n];
+    GANTT chart[100];
+
+    for(int i=0;i<n;i++)
+    {
+        scanf("%s %d %d", p[i].pname, &p[i].at, &p[i].bt);
+        p[i].bt1 = p[i].bt;
+    }
+
+    while(completed < n)
+    {
+        int idx = -1;
+        int min_bt = 9999;
+        for(int i=0;i<n;i++)
+        {
+            if(p[i].at <= time && p[i].bt1 > 0)
+            {
+                if(p[i].bt1 < min_bt)
+                {
+                    min_bt = p[i].bt1;
+                    idx = i;
+                }
+            }
+        }
+
+        if(idx == -1)
+        {
+            chart[chart_index].start = time;
+            strcpy(chart[chart_index].pname, "*");
+            time++;
+            chart[chart_index].end = time;
+            chart_index++;
+        }
+        else
+        {
+            chart[chart_index].start = time;
+            strcpy(chart[chart_index].pname, p[idx].pname);
+            p[idx].bt1--;
+            time++;
+            chart[chart_index].end = time;
+            chart_index++;
+
+            if(p[idx].bt1 == 0)
+            {
+                p[idx].ct = time;
+                completed++;
+            }
+        }
+    }
+
+    printf("\nProcess\tAT\tBT\tCT\tTAT\tWT\n");
+    float total_tat=0, total_wt=0;
+    for(int i=0;i<n;i++)
+    {
+        int tat = p[i].ct - p[i].at;
+        int wt = tat - p[i].bt;
+        total_tat += tat;
+        total_wt += wt;
+        printf("%s\t%d\t%d\t%d\t%d\t%d\n", p[i].pname, p[i].at, p[i].bt, p[i].ct, tat, wt);
+    }
+    printf("\nAverage TAT = %.2f\tAverage WT = %.2f\n", total_tat/n, total_wt/n);
+
+    printf("\nGantt Chart:\n");
+    int i = 0;
+    while(i < chart_index)
+    {
+        int start = chart[i].start;
+        char pname[20]; strcpy(pname, chart[i].pname);
+        int end = chart[i].end;
+        int j = i+1;
+        while(j < chart_index && strcmp(chart[j].pname, pname) == 0)
+        {
+            end = chart[j].end;
+            j++;
+        }
+        printf("|%d %s %d", start, pname, end);
+        i = j;
+    }
+    printf("|\n");
+
+    return 0;
+}
+
+
