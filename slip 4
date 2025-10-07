@@ -108,7 +108,6 @@ return 0;
 }
 
 Q2)
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,31 +117,28 @@ Q2)
 
 #define MAX 100
 
-void countFile(char type, char *filename) {
+void searchPattern(char *mode, char *filename, char *pattern) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         printf("File not found!\n");
         return;
     }
-    int ch, chars = 0, words = 0, lines = 0;
-    char prev = ' ';
-    while ((ch = fgetc(fp)) != EOF) {
-        chars++;
-        if (ch == '\n')
-            lines++;
-        if ((ch == ' ' || ch == '\n' || ch == '\t') && (prev != ' ' && prev != '\n' && prev != '\t'))
-            words++;
-        prev = ch;
+    char line[256];
+    int count = 0, lineNum = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        lineNum++;
+        char *pos = line;
+        while ((pos = strstr(pos, pattern)) != NULL) {
+            count++;
+            printf("%s", strcmp(mode, "a") == 0 ? "" : "");
+            if (strcmp(mode, "a") == 0)
+                printf("Found at line %d: %s", lineNum, line);
+            pos += strlen(pattern);
+        }
     }
     fclose(fp);
-    if (type == 'c')
-        printf("Number of characters: %d\n", chars);
-    else if (type == 'w')
-        printf("Number of words: %d\n", words);
-    else if (type == 'l')
-        printf("Number of lines: %d\n", lines);
-    else
-        printf("Invalid option for count command!\n");
+    if (strcmp(mode, "c") == 0)
+        printf("Total occurrences: %d\n", count);
 }
 
 int main() {
@@ -164,12 +160,13 @@ int main() {
         args[i] = NULL;
         if (args[0] == NULL)
             continue;
-        if (strcmp(args[0], "count") == 0) {
-            if (args[1] == NULL || args[2] == NULL) {
-                printf("Usage: count [c|w|l] filename\n");
-                continue;
-            }
-            countFile(args[1][0], args[2]);
+        if (strcmp(args[0], "search") == 0) {
+            if (i == 3)
+                searchPattern("a", args[1], args[2]);
+            else if (i == 4 && strcmp(args[1], "c") == 0)
+                searchPattern("c", args[2], args[3]);
+            else
+                printf("Usage:\n search a filename pattern\n search c filename pattern\n");
             continue;
         }
         pid = fork();
@@ -184,3 +181,5 @@ int main() {
     }
     return 0;
 }
+
+
