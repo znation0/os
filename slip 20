@@ -1,0 +1,220 @@
+Q1)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <unistd.h>
+int make_toks(char *s, char *tok[]) 
+{ 
+ int i = 0; 
+ char *p; 
+ p = strtok(s, " "); 
+while(p != NULL) 
+{ 
+ tok[i++] = p; 
+ p = strtok(NULL, " "); 
+} 
+tok[i] = NULL; 
+return i; 
+} 
+void typeline(char *op, char *fn) 
+{ 
+ int fh, i, j, n; 
+ char c; 
+fh = open(fn, O_RDONLY); 
+if(fh == -1) 
+{ 
+printf("File %s not found.\n", fn); 
+return; 
+} 
+if(strcmp(op, "a") == 0) 
+{ 
+ while(read(fh, &c, 1) > 0) 
+ printf("%c", c); 
+ close(fh); 
+ return; 
+} 
+n = atoi(op); 
+if(n > 0) 
+{ 
+ i = 0; 
+ while(read(fh, &c, 1) > 0) 
+ { 
+ printf("%c", c); 
+
+ if(c == '\n') 
+ i++; 
+ if(i == n) 
+ break; 
+} 
+} 
+if(n < 0) 
+{ 
+ i = 0; 
+ while(read(fh, &c, 1) > 0) 
+ { 
+ if(c == '\n') i++; 
+ } 
+ lseek(fh, 0, SEEK_SET); 
+j = 0; 
+while(read(fh, &c, 1) > 0) 
+{ 
+ if(c == '\n') 
+ j++; 
+ if(j == i+n+1) 
+ break; 
+} 
+while(read(fh, &c, 1) > 0) 
+{ 
+ printf("%c", c); 
+} 
+} 
+close(fh); 
+} 
+int main() 
+{ 
+ char buff[80], *args[10]; 
+ while(1) 
+ { 
+ printf ("\n"); 
+ printf("\nmyshell$ "); 
+ fgets(buff, 80, stdin); 
+ buff[strlen(buff)-1] = '\0'; 
+ int n = make_toks(buff, args); 
+ switch (n) 
+ { 
+ case 1: if(strcmp(args[0], "exit") == 0) 
+exit(1); 
+if (!fork()) 
+execlp (args [0], args[0], NULL); 
+break; 
+ case 2: 
+if (!fork ()) 
+
+execlp (args [0], args[0], args[1], NULL); 
+break; 
+ case 3: if (strcmp(args[0], "typeline") == 0) 
+ typeline (args[1], args[2]); 
+else
+{ 
+ if (!fork ()) 
+execlp (args [0], args[0], args[1], args[2], NULL); 
+} 
+break; 
+case 4: 
+if (!fork ()) 
+execlp (args [0], args [0], args [1], args [2], args [3], NULL); 
+break; 
+} 
+} 
+return 0; 
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct process
+{
+    char pname[20];
+    int at, bt, ct, bt1;
+} PROCESS;
+
+typedef struct gantt
+{
+    int start;
+    char pname[20];
+    int end;
+} GANTT;
+
+int main()
+{
+    int n, completed = 0, time = 0, chart_index = 0;
+    scanf("%d", &n);
+
+    PROCESS p[n];
+    GANTT chart[100];
+
+    for(int i=0;i<n;i++)
+    {
+        scanf("%s %d %d", p[i].pname, &p[i].at, &p[i].bt);
+        p[i].bt1 = p[i].bt;
+    }
+
+    while(completed < n)
+    {
+        int idx = -1;
+        int min_bt = 9999;
+        for(int i=0;i<n;i++)
+        {
+            if(p[i].at <= time && p[i].bt1 > 0)
+            {
+                if(p[i].bt1 < min_bt)
+                {
+                    min_bt = p[i].bt1;
+                    idx = i;
+                }
+            }
+        }
+
+        if(idx == -1)
+        {
+            chart[chart_index].start = time;
+            strcpy(chart[chart_index].pname, "*");
+            time++;
+            chart[chart_index].end = time;
+            chart_index++;
+        }
+        else
+        {
+            chart[chart_index].start = time;
+            strcpy(chart[chart_index].pname, p[idx].pname);
+            p[idx].bt1--;
+            time++;
+            chart[chart_index].end = time;
+            chart_index++;
+
+            if(p[idx].bt1 == 0)
+            {
+                p[idx].ct = time;
+                completed++;
+            }
+        }
+    }
+
+    printf("\nProcess\tAT\tBT\tCT\tTAT\tWT\n");
+    float total_tat=0, total_wt=0;
+    for(int i=0;i<n;i++)
+    {
+        int tat = p[i].ct - p[i].at;
+        int wt = tat - p[i].bt;
+        total_tat += tat;
+        total_wt += wt;
+        printf("%s\t%d\t%d\t%d\t%d\t%d\n", p[i].pname, p[i].at, p[i].bt, p[i].ct, tat, wt);
+    }
+    printf("\nAverage TAT = %.2f\tAverage WT = %.2f\n", total_tat/n, total_wt/n);
+
+    printf("\nGantt Chart:\n");
+    int i = 0;
+    while(i < chart_index)
+    {
+        int start = chart[i].start;
+        char pname[20]; strcpy(pname, chart[i].pname);
+        int end = chart[i].end;
+        int j = i+1;
+        while(j < chart_index && strcmp(chart[j].pname, pname) == 0)
+        {
+            end = chart[j].end;
+            j++;
+        }
+        printf("|%d %s %d", start, pname, end);
+        i = j;
+    }
+    printf("|\n");
+
+    return 0;
+}
