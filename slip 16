@@ -1,0 +1,194 @@
+Q1)
+#include <sys/types.h>
+#include<unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+void make_toks(char *s, char *tok[]) 
+{ 
+ int i=0; 
+ char *p; 
+ p = strtok(s," "); 
+while(p!=NULL) 
+{ tok[i++]=p; 
+ p=strtok(NULL," "); 
+} 
+tok[i]=NULL; 
+} 
+void count(char *fn, char op) 
+{ int fh,cc=0,wc=0,lc=0; 
+ char c; 
+fh = open(fn,O_RDONLY); 
+if(fh==-1) { 
+printf("File %s not found.\n",fn); 
+return; 
+} 
+while(read(fh,&c,1)>0) 
+{ if(c==' ') 
+ wc++; 
+ else if(c=='\n') 
+ { 
+ wc++; 
+ lc++; 
+ } cc++; 
+} close(fh); 
+switch(op) 
+{ 
+ case 'c': 
+printf("No.of characters:%d\n",cc-1); 
+break; 
+ case 'w': 
+printf("No.of words:%d\n",wc); 
+break; 
+ case 'l': 
+printf("No.of lines:%d\n",lc+1);
+break; 
+} 
+} int main() 
+{ 
+ char buff[80],*args[10]; 
+ int pid; 
+ while(1) { printf("myshell$ "); 
+ fflush(stdin); 
+ fgets(buff,80,stdin); 
+ buff[strlen(buff)-1]='\0'; 
+ make_toks(buff,args); 
+if(strcmp(args[0],"count")==0) 
+count(args[2],args[1][0]); 
+else 
+ { pid = fork(); 
+ if(pid>0) 
+ wait(); 
+ else 
+ { 
+if(execvp(args[0],args)==-1) 
+printf("Bad command.\n"); 
+ } 
+ } 
+ } 
+ return 0; 
+}
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct PROCESS
+{
+    char name[20];
+    int at, bt, ct, tat, tbt, wt, priority;
+} PROCESS;
+
+PROCESS jobs[10];
+int time=0, processCount, totalTat=0, totalWt=0;
+float avgTat, avgWt;
+
+void sort()
+{
+    int i, j;
+    PROCESS p;
+    for(i=0;i<processCount;i++)
+    {
+        for(j=i+1;j<processCount;j++)
+        {
+            if(jobs[i].at > jobs[j].at)
+            {
+                p = jobs[i];
+                jobs[i] = jobs[j];
+                jobs[j] = p;
+            }
+        }
+    }
+}
+
+int getJob()
+{
+    int i, job=-1, minPriority=999;
+    for(i=0;i<processCount;i++)
+    {
+        if(jobs[i].at <= time && jobs[i].tbt !=0)
+        {
+            if(jobs[i].priority < minPriority)
+            {
+                minPriority = jobs[i].priority;
+                job = i;
+            }
+        }
+    }
+    return job;
+}
+
+void getProcess()
+{
+    int i;
+    printf("Enter number of processes: ");
+    scanf("%d",&processCount);
+    for(i=0;i<processCount;i++)
+    {
+        printf("\nEnter process name: ");
+        scanf("%s",jobs[i].name);
+        printf("Enter CPU Burst time: ");
+        scanf("%d",&jobs[i].bt);
+        printf("Enter Arrival time: ");
+        scanf("%d",&jobs[i].at);
+        jobs[i].tbt = jobs[i].bt;
+        printf("Enter process priority: ");
+        scanf("%d",&jobs[i].priority);
+    }
+    sort();
+}
+
+void process()
+{
+    int job, count=0;
+    char currentJob[20], prevJob[20] = "NULL";
+
+    printf("\n\tGantt Chart\n");
+    printf("_________________________________________________\n|0");
+    while(count < processCount)
+    {
+        job = getJob();
+        if(job == -1)
+        {
+            time++;
+            continue;
+        }
+        strcpy(currentJob,jobs[job].name);
+        jobs[job].tbt=0;
+        jobs[job].ct = time + jobs[job].bt;
+        jobs[job].tat = jobs[job].ct - jobs[job].at;
+        jobs[job].wt = jobs[job].tat - jobs[job].bt;
+        totalTat += jobs[job].tat;
+        totalWt += jobs[job].wt;
+        if(strcmp(currentJob,prevJob)!=0)
+            printf(" %s %d|", currentJob, jobs[job].ct);
+        time = jobs[job].ct;
+        strcpy(prevJob,currentJob);
+        count++;
+    }
+    printf("\n_________________________________________________\n");
+    avgTat = (float)totalTat/processCount;
+    avgWt = (float)totalWt/processCount;
+}
+
+void display()
+{
+    int i;
+    printf("\nProcess name\tArrival Time\tBurst Time\tCompletion Time\tTAT\tWT\n");
+    for(i=0;i<processCount;i++)
+        printf("%s\t\t%d\t\t%d\t\t%d\t\t%d\t%d\n", jobs[i].name, jobs[i].at, jobs[i].bt, jobs[i].ct, jobs[i].tat, jobs[i].wt);
+    printf("\nAverage Turn Around Time: %.2f\n", avgTat);
+    printf("Average Waiting Time: %.2f\n", avgWt);
+}
+
+int main()
+{
+    getProcess();
+    process();
+    display();
+    return 0;
+}
+
