@@ -1,0 +1,168 @@
+Q1)
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+
+int main() {
+    int n, i;
+    printf("Enter number of values: ");
+    scanf("%d", &n);
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork failed");
+        exit(1);
+    }
+
+    if (pid == 0) { 
+        printf("Child process PID: %d\n", getpid());
+        int new_nice = nice(-5); // Increase priority
+        if (new_nice == -1)
+            perror("nice failed");
+        else
+            printf("Child new nice value: %d\n", new_nice);
+
+        printf("Child process printing values:\n");
+        for (i = 1; i <= n; i++) {
+            printf("Child: %d\n", i);
+        }
+        printf("Child finished work\n");
+    } else {
+        printf("Parent process PID: %d\n", getpid());
+
+        printf("Parent process printing values:\n");
+        for (i = 1; i <= n; i++) {
+            printf("Parent: %d\n", i);
+        }
+
+        wait(NULL); // Wait for child
+        printf("Parent finished work\n");
+    }
+
+    return 0;
+}
+
+
+Q2)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct PROCESS
+{
+    char name[20];
+    int at, bt, ct, tat, tbt, wt, priority;
+} PROCESS;
+
+PROCESS jobs[10];
+int time=0, processCount, totalTat=0, totalWt=0;
+float avgTat, avgWt;
+
+void sort()
+{
+    int i, j;
+    PROCESS p;
+    for(i=0;i<processCount;i++)
+    {
+        for(j=i+1;j<processCount;j++)
+        {
+            if(jobs[i].at > jobs[j].at)
+            {
+                p = jobs[i];
+                jobs[i] = jobs[j];
+                jobs[j] = p;
+            }
+        }
+    }
+}
+
+int getJob()
+{
+    int i, job=-1, minPriority=999;
+    for(i=0;i<processCount;i++)
+    {
+        if(jobs[i].at <= time && jobs[i].tbt !=0)
+        {
+            if(jobs[i].priority < minPriority)
+            {
+                minPriority = jobs[i].priority;
+                job = i;
+            }
+        }
+    }
+    return job;
+}
+
+void getProcess()
+{
+    int i;
+    printf("Enter number of processes: ");
+    scanf("%d",&processCount);
+    for(i=0;i<processCount;i++)
+    {
+        printf("\nEnter process name: ");
+        scanf("%s",jobs[i].name);
+        printf("Enter CPU Burst time: ");
+        scanf("%d",&jobs[i].bt);
+        printf("Enter Arrival time: ");
+        scanf("%d",&jobs[i].at);
+        jobs[i].tbt = jobs[i].bt;
+        printf("Enter process priority: ");
+        scanf("%d",&jobs[i].priority);
+    }
+    sort();
+}
+
+void process()
+{
+    int job, count=0;
+    char currentJob[20], prevJob[20] = "NULL";
+
+    printf("\n\tGantt Chart\n");
+    printf("_________________________________________________\n|0");
+    while(count < processCount)
+    {
+        job = getJob();
+        if(job == -1)
+        {
+            time++;
+            continue;
+        }
+        strcpy(currentJob,jobs[job].name);
+        jobs[job].tbt=0;
+        jobs[job].ct = time + jobs[job].bt;
+        jobs[job].tat = jobs[job].ct - jobs[job].at;
+        jobs[job].wt = jobs[job].tat - jobs[job].bt;
+        totalTat += jobs[job].tat;
+        totalWt += jobs[job].wt;
+        if(strcmp(currentJob,prevJob)!=0)
+            printf(" %s %d|", currentJob, jobs[job].ct);
+        time = jobs[job].ct;
+        strcpy(prevJob,currentJob);
+        count++;
+    }
+    printf("\n_________________________________________________\n");
+    avgTat = (float)totalTat/processCount;
+    avgWt = (float)totalWt/processCount;
+}
+
+void display()
+{
+    int i;
+    printf("\nProcess name\tArrival Time\tBurst Time\tCompletion Time\tTAT\tWT\n");
+    for(i=0;i<processCount;i++)
+        printf("%s\t\t%d\t\t%d\t\t%d\t\t%d\t%d\n", jobs[i].name, jobs[i].at, jobs[i].bt, jobs[i].ct, jobs[i].tat, jobs[i].wt);
+    printf("\nAverage Turn Around Time: %.2f\n", avgTat);
+    printf("Average Waiting Time: %.2f\n", avgWt);
+}
+
+int main()
+{
+    getProcess();
+    process();
+    display();
+    return 0;
+}
