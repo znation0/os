@@ -1,38 +1,30 @@
 Q1)
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-
+# include<unistd.h>
+#include<stdio.h>
+#include<sys/types.h>
 void ChildProcess();
 void ParentProcess();
-
 int main()
 {
-    pid_t pid;
-    pid = fork();
-    if(pid < 0) {
-        printf("Fork failed.\n");
-        return 1;
-    }
-    else if(pid == 0)
-        ChildProcess();
-    else
-        ParentProcess();
-
-    return 0;
+pid_t pid;
+pid=fork();
+if(pid==0)
+ChildProcess();
+else
+ParentProcess();
+return 0;
 }
-
 void ChildProcess()
 {
-    printf("I am child process.\n");
-    printf("The process ID of child: %d\n", getpid());
+printf("i am child process..\n");
+printf("the process id of child..%d\n",getpid());
 }
-
 void ParentProcess()
 {
-    printf("I am parent process.\n");
-    printf("The process ID of parent: %d\n", getpid());
+printf("i am parent process..\n");
+printf("the process id of parent..%d\n",getppid());
 }
+
 
 Q2)
 #include <stdio.h>
