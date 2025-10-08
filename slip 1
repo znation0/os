@@ -1,4 +1,4 @@
-Q1)
+Q1))
 #include<stdio.h>
 #define MAX 20
 int frames[MAX],ref[MAX],mem[MAX][MAX],faults,
