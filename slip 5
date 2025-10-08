@@ -1,90 +1,90 @@
 Q1)
-#include<stdio.h>
-int main() 
-{ 
- int no_of_frames, no_of_pages, frames[10], pages[30], temp[10], flag1, 
-flag2, flag3, i, j, k, pos, max, faults = 0; 
- printf("Enter number of frames: "); 
- scanf("%d", &no_of_frames); 
- 
- printf("Enter number of pages: "); 
- scanf("%d", &no_of_pages); 
- 
- printf("Enter page reference string: ");
- for(i = 0; i < no_of_pages; ++i){ 
- scanf("%d", &pages[i]); 
- } 
- 
- for(i = 0; i < no_of_frames; ++i){ 
- frames[i] = -1; 
- } 
- 
- for(i = 0; i < no_of_pages; ++i){ 
- flag1 = flag2 = 0; 
- 
- for(j = 0; j < no_of_frames; ++j){ 
- if(frames[j] == pages[i]){ 
- flag1 = flag2 = 1; 
- break; 
- } 
- } 
- 
- if(flag1 == 0){ 
- for(j = 0; j < no_of_frames; ++j){ 
- if(frames[j] == -1){ 
- faults++; 
- frames[j] = pages[i]; 
- flag2 = 1; 
- break; 
- } 
- } 
- } 
- 
- if(flag2 == 0){ 
- flag3 =0; 
- 
- for(j = 0; j < no_of_frames; ++j){ 
- temp[j] = -1; 
- 
- for(k = i + 1; k < no_of_pages; ++k){ 
- if(frames[j] == pages[k]){ 
- temp[j] = k; 
- break; 
- } 
- } 
- } 
- 
- for(j = 0; j < no_of_frames; ++j){ 
- if(temp[j] == -1){ 
- pos = j; 
- flag3 = 1;
- break; 
- } 
- } 
- 
- if(flag3 ==0){ 
- max = temp[0]; 
- pos = 0; 
- 
- for(j = 1; j < no_of_frames; ++j){ 
- if(temp[j] > max){ 
- max = temp[j]; 
- pos = j; 
- } 
- } 
- } 
-frames[pos] = pages[i]; 
-faults++; 
- } 
- printf("\n"); 
- for(j = 0; j < no_of_frames; ++j){ 
- printf("%d\t", frames[j]); 
- } 
- } 
- printf("\n\nTotal Page Faults = %d", faults); 
- 
- return 0; 
+#include <stdio.h>
+
+int n;
+int findmax(int a[]);
+
+int main() {
+    int seq[30], fr[5], pos[5], flag, max, i, j, m, k, s;
+    int count = 1, pf = 0, p = 0;
+    float pfr;
+
+    printf("Enter maximum limit of the sequence: ");
+    scanf("%d", &max);
+
+    printf("\nEnter the sequence: ");
+    for (i = 0; i < max; i++)
+        scanf("%d", &seq[i]);
+
+    printf("\nEnter no. of frames: ");
+    scanf("%d", &n);
+
+    fr[0] = seq[0];
+    pf++;
+    printf("%d\t", fr[0]);
+
+    i = 1;
+    while (count < n) {
+        flag = 1;
+        p++;
+        for (j = 0; j < i; j++) {
+            if (seq[i] == seq[j])
+                flag = 0;
+        }
+        if (flag != 0) {
+            fr[count] = seq[i];
+            printf("%d\t", fr[count]);
+            count++;
+            pf++;
+        }
+        i++;
+    }
+
+    printf("\n");
+
+    for (i = p; i < max; i++) {
+        flag = 1;
+        for (j = 0; j < n; j++) {
+            if (seq[i] == fr[j])
+                flag = 0;
+        }
+        if (flag != 0) {
+            for (j = 0; j < n; j++) {
+                m = fr[j];
+                for (k = i; k < max; k++) {
+                    if (seq[k] == m) {
+                        pos[j] = k;
+                        break;
+                    } else
+                        pos[j] = 1000;
+                }
+            }
+            s = findmax(pos);
+            fr[s] = seq[i];
+            pf++;
+        }
+        for (j = 0; j < n; j++)
+            printf("%d\t", fr[j]);
+        printf("\n");
+    }
+
+    pfr = (float)pf / (float)max;
+    printf("\nThe no. of page faults are %d\n", pf);
+
+    return 0;
 }
+
+int findmax(int a[]) {
+    int max = a[0], i, k = 0;
+    for (i = 1; i < n; i++) {
+        if (a[i] > max) {
+            max = a[i];
+            k = i;
+        }
+    }
+    return k;
+}
+
 
 Q2)
 
