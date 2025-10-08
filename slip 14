@@ -1,115 +1,70 @@
 Q1)
-#include <sys/types.h>  
-#include <sys/stat.h>  
-#include <stdio.h>  
-#include <stdlib.h>  
-#include <string.h>  
-#include <fcntl.h>  
-#include <dirent.h>  
-#include <unistd.h>  
-int make_toks(char *s, char *tok[])  
-{ 
-        int i = 0;  
-    char *p;  
-    p = strtok(s, " ");  
-while(p != NULL)  
-{ 
-       tok[i++] = p;  
-    p = strtok(NULL, " ");  
-}  
-tok[i] = NULL; 
-return i; 
-}  
-void typeline(char *op, char *fn)  
-{ 
-        int fh, i, j, n;  
-    char c;  
-fh = open(fn, O_RDONLY);  
-if(fh == -1)  
-{  
-printf("File %s not found.\n", fn); 
-return;  
-} 
-if(strcmp(op, "a") == 0)  
-{  
-    while(read(fh, &c, 1) > 0) 
-            printf("%c", c); 
-        close(fh);  
-    return; 
-}  
-n = atoi(op);  
-if(n > 0) 
-{ 
-        i = 0; 
-        while(read(fh, &c, 1) > 0)  
-    { 
-            printf("%c", c); 
-            if(c == '\n') 
-                i++;  
-        if(i == n)  
-            break;  
-} 
-} 
-if(n < 0) 
-{ 
-        i = 0; 
-        while(read(fh, &c, 1) > 0)  
-            { 
-            if(c == '\n') i++; 
-        } 
-        lseek(fh, 0, SEEK_SET);  
-j = 0; 
-while(read(fh, &c, 1) > 0) 
-{  
-    if(c == '\n') 
-            j++;  
-    if(j == i+n+1) 
-            break;  
-}  
-while(read(fh, &c, 1) > 0)  
-{ 
-        printf("%c", c);  
-} 
-} 
-close(fh);  
-} 
-int main()  
-{ 
-        char buff[80], *args[10]; 
-        while(1)  
-    { 
-            printf ("\n");  
-        printf("\nmyshell$ ");  
-        fgets(buff, 80, stdin); 
-            buff[strlen(buff)-1] = '\0'; 
-            int n = make_toks(buff, args);  
-        switch (n)  
-        { 
-                case 1: if(strcmp(args[0], "exit") == 0)  
-exit(1);  
-if (!fork())  
-execlp (args [0], args[0], NULL);  
-break;  
-            case 2:  
-if (!fork ())  
-execlp (args [0], args[0], args[1], NULL); 
-break; 
-                case 3: if (strcmp(args[0], "typeline") == 0) 
-                        typeline (args[1], args[2]); 
-else 
-{ 
-        if (!fork ())  
-execlp (args [0], args[0], args[1], args[2], NULL);  
-} 
-break; 
-case 4:  
-if (!fork ())  
-execlp (args [0], args [0], args [1], args [2], args [3], NULL); 
-break;  
-} 
-} 
-return 0;  
-} 
+#include <stdio.h>
+
+int main() {
+    int n, i, j, temp;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+
+    int at[n], bt[n], pr[n], start_time[n], end_time[n], wait_time[n], turnaround_time[n];
+    for(i = 0; i < n; i++) {
+        printf("Enter arrival time and burst time for process %d: ", i + 1);
+        scanf("%d %d", &at[i], &bt[i]);
+        pr[i] = i + 1;
+    }
+
+    for(i = 0; i < n-1; i++) {
+        for(j = i+1; j < n; j++) {
+            if(at[i] > at[j]) {
+                temp = at[i]; at[i] = at[j]; at[j] = temp;
+                temp = bt[i]; bt[i] = bt[j]; bt[j] = temp;
+                temp = pr[i]; pr[i] = pr[j]; pr[j] = temp;
+            }
+        }
+    }
+
+    int time = 0, completed = 0;
+    int processed[n]; for(i=0;i<n;i++) processed[i]=0;
+    printf("\nProcess | Arrival | Burst | Start | End | Waiting | Turnaround\n");
+
+    while(completed < n) {
+        int idx = -1, min_bt = 100000;
+        for(i = 0; i < n; i++) {
+            if(at[i] <= time && !processed[i] && bt[i] < min_bt) {
+                min_bt = bt[i];
+                idx = i;
+            }
+        }
+
+        if(idx == -1) {
+            time++;
+            continue;
+        }
+
+        start_time[idx] = time;
+        end_time[idx] = time + bt[idx];
+        wait_time[idx] = start_time[idx] - at[idx];
+        turnaround_time[idx] = end_time[idx] - at[idx];
+        time += bt[idx];
+        processed[idx] = 1;
+        completed++;
+
+        printf("%7d | %7d | %5d | %5d | %3d | %7d | %10d\n",
+               pr[idx], at[idx], bt[idx], start_time[idx], end_time[idx], wait_time[idx], turnaround_time[idx]);
+    }
+
+    float total_wait = 0, total_turn = 0;
+    for(i=0; i<n; i++) {
+        total_wait += wait_time[i];
+        total_turn += turnaround_time[i];
+    }
+
+    printf("\nAverage waiting time: %.2f\n", total_wait/n);
+    printf("Average turnaround time: %.2f\n", total_turn/n);
+
+    return 0;
+}
+
 
 Q2)
 #include <sys/types.h>  
